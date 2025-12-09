@@ -1,0 +1,30 @@
+# CNN-BiLSTM Model Configuration
+# ================================
+# Best performing model architecture
+
+data:
+  positive_file: "dataset/postive comment.txt"
+  negative_file: "dataset/negative comment.txt"
+  max_words: 15000
+  max_len: 20
+  test_size: 0.1
+  val_size: 0.1
+  random_state: 42
+
+model:
+  model_type: "cnn_bilstm"
+  embedding_dim: 32
+  trainable_embeddings: true
+  filters: 64
+  kernel_size: 3
+  lstm_units: 64
+  dropout_rate: 0.3
+
+training:
+  epochs: 10
+  batch_size: 128
+  learning_rate: 0.001
+  use_class_weights: false
+  early_stopping_patience: 5
+
+output_dir: "experiments/cnn_bilstm"

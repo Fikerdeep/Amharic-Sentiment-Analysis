@@ -1,0 +1,51 @@
+# Amharic Sentiment Analysis Configuration
+# ==========================================
+
+# Data Configuration
+data:
+  positive_file: "dataset/postive comment.txt"
+  negative_file: "dataset/negative comment.txt"
+  embeddings_file: null  # Path to Word2Vec embeddings (optional)
+  max_words: 15000       # Maximum vocabulary size
+  max_len: 20            # Maximum sequence length
+  test_size: 0.1         # Test set proportion
+  val_size: 0.1          # Validation set proportion
+  random_state: 42       # Random seed for reproducibility
+  encoding: "utf-8"      # File encoding
+
+# Model Configuration
+model:
+  model_type: "cnn_bilstm"  # Options: cnn, bilstm, gru, cnn_bilstm
+  embedding_dim: 32         # Word embedding dimension
+  trainable_embeddings: true
+
+  # CNN-specific parameters
+  filters: 64
+  kernel_size: 3
+
+  # LSTM/GRU parameters
+  lstm_units: 64
+  gru_units: 64
+
+  # Common parameters
+  dropout_rate: 0.3
+  dense_units: 64
+
+# Training Configuration
+training:
+  epochs: 10
+  batch_size: 32
+  learning_rate: 0.001
+  optimizer: "adam"
+  loss: "binary_crossentropy"
+  use_class_weights: false
+
+  # Callback settings
+  early_stopping_patience: 5
+  reduce_lr_patience: 3
+  min_lr: 0.0000001
+
+# Output paths
+output_dir: "experiments"
+checkpoint_dir: "saved_models"
+log_dir: "logs"
