@@ -1,0 +1,27 @@
+# API Dependencies
+# ================
+
+# Web Framework
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+pydantic>=2.0.0
+
+# Core ML dependencies
+numpy>=1.21.0,<2.0.0
+scikit-learn>=1.0.0
+
+# TensorFlow (default model)
+tensorflow>=2.10.0,<3.0.0
+
+# PyTorch (optional - uncomment if using PyTorch models)
+# torch>=2.0.0
+
+# Transformers (optional - uncomment if using transformer models)
+# transformers>=4.30.0
+# tokenizers>=0.13.0
+
+# Preprocessing
+pyyaml>=5.4.0
+
+# HTTP client for health checks
+httpx>=0.24.0
