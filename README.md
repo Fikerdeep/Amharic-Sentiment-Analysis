@@ -5,9 +5,9 @@ A deep learning-based sentiment analysis system for Amharic (Ethiopian) text. Th
 ## Features
 
 - **Multiple Model Architectures**: CNN, BiLSTM, GRU, and hybrid CNN-BiLSTM
+- **Framework Support**: TensorFlow/Keras, PyTorch, and Hugging Face Transformers
 - **Amharic-Specific Preprocessing**: Handles Ge'ez script character variants and labialized characters
-- **Modular Design**: Clean, reusable code organized as a Python package
-- **Easy to Use**: Simple API and CLI for training and prediction
+- **Production-Ready API**: FastAPI REST API with Docker support
 - **Comprehensive Evaluation**: Accuracy, precision, recall, F1-score, ROC-AUC metrics
 
 ## Model Performance
@@ -26,16 +26,18 @@ Amharic-Sentiment-Analysis/
 ├── amharic_sentiment/           # Main package
 │   ├── preprocessing/           # Text cleaning and normalization
 │   ├── data/                    # Dataset and data loading utilities
-│   ├── models/                  # Neural network architectures
-│   ├── training/                # Training pipeline and callbacks
+│   ├── models/                  # TensorFlow/Keras models
+│   ├── pytorch/                 # PyTorch models
+│   ├── transformers/            # Hugging Face Transformers
+│   ├── training/                # Training pipeline
 │   ├── evaluation/              # Metrics and visualization
 │   └── utils/                   # Configuration and logging
+├── api/                         # FastAPI REST API
+├── docker/                      # Docker configuration
 ├── configs/                     # YAML configuration files
-├── scripts/                     # Training and utility scripts
-├── notebooks/                   # Jupyter notebooks with examples
-├── dataset/                     # Training data
-├── experiments/                 # Saved experiments and models
-└── logs/                        # Training logs
+├── scripts/                     # Utility scripts
+├── notebooks/                   # Jupyter notebooks
+└── dataset/                     # Training data
 ```
 
 ## Installation
@@ -92,44 +94,154 @@ print(f"Accuracy: {results['accuracy']:.4f}")
 # Train a model
 python scripts/train.py --model cnn_bilstm --epochs 10
 
-# Or use the installed CLI
-amharic-sentiment train --model cnn_bilstm --epochs 10
-
 # Make predictions
 amharic-sentiment predict --model saved_models/model.keras \
     --tokenizer saved_models/tokenizer.pkl \
     --text "ጥሩ ስራ ነው"
 ```
 
-### Using Configuration Files
+---
+
+## REST API
+
+### Running the API
 
 ```bash
-# Train with config file
-python scripts/train.py --config configs/cnn_bilstm.yaml
+# Install API dependencies
+pip install -r requirements-api.txt
+
+# Run locally
+python scripts/run_api.py --port 8000
+
+# Or with uvicorn directly
+uvicorn api.main:app --host 0.0.0.0 --port 8000
 ```
 
-## Model Architectures
+### API Endpoints
 
-### 1. CNN (Convolutional Neural Network)
-- Embedding → Conv1D → GlobalMaxPooling → Dense → Output
-- Good for capturing local n-gram patterns
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | API information |
+| `/health` | GET | Health check |
+| `/predict` | POST | Single text prediction |
+| `/predict/batch` | POST | Batch prediction (up to 100) |
+| `/model/load` | POST | Load a different model |
+| `/model/info` | GET | Current model information |
+| `/docs` | GET | Swagger documentation |
 
-### 2. BiLSTM (Bidirectional LSTM)
-- Embedding → BiLSTM → BiLSTM → Dense → Output
-- Captures long-range dependencies in both directions
+### API Usage Examples
 
-### 3. GRU (Gated Recurrent Unit)
-- Embedding → GRU → GRU → Output
-- Efficient alternative to LSTM
+**Single Prediction:**
+```bash
+curl -X POST "http://localhost:8000/predict" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "ጥሩ ስራ ነው ተባረኩ"}'
+```
 
-### 4. CNN-BiLSTM (Hybrid)
-- Embedding → Conv1D → MaxPool → BiLSTM → Output
-- Combines local feature extraction with sequence modeling
-- **Best performing model**
+Response:
+```json
+{
+  "success": true,
+  "result": {
+    "text": "ጥሩ ስራ ነው ተባረኩ",
+    "sentiment": "positive",
+    "confidence": 0.92,
+    "probability": 0.92
+  },
+  "model_type": "tensorflow",
+  "processing_time_ms": 45.2
+}
+```
+
+**Batch Prediction:**
+```bash
+curl -X POST "http://localhost:8000/predict/batch" \
+  -H "Content-Type: application/json" \
+  -d '{"texts": ["ጥሩ ስራ ነው", "መጥፎ ነገር"]}'
+```
+
+---
+
+## Docker Deployment
+
+### Build and Run
+
+```bash
+# Build the image
+docker build -t amharic-sentiment-api .
+
+# Run the container
+docker run -p 8000:8000 \
+  -v ./saved_models:/app/saved_models \
+  amharic-sentiment-api
+```
+
+### Using Docker Compose
+
+```bash
+cd docker
+
+# Start the API
+docker-compose up -d
+
+# Start with Nginx (production)
+docker-compose --profile production up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MODEL_TYPE` | tensorflow | Model type (tensorflow/pytorch/transformer) |
+| `MODEL_PATH` | /app/saved_models/model.keras | Path to model file |
+| `TOKENIZER_PATH` | /app/saved_models/tokenizer.pkl | Path to tokenizer |
+| `MAX_LEN` | 20 | Maximum sequence length |
+
+---
+
+## PyTorch Models
+
+```python
+from amharic_sentiment.pytorch.models import CNNBiLSTMClassifier
+from amharic_sentiment.pytorch.training import PyTorchTrainer
+
+# Create model
+model = CNNBiLSTMClassifier(vocab_size=15000, embedding_dim=100)
+
+# Train
+trainer = PyTorchTrainer(model, device='cuda')
+trainer.compile(optimizer='adam', learning_rate=0.001)
+trainer.fit(train_loader, val_loader, epochs=10)
+```
+
+## Transformer Models
+
+```python
+from amharic_sentiment.transformers import TransformerClassifier, TransformerTrainer
+
+# Load XLM-RoBERTa for Amharic
+model = TransformerClassifier('xlm-roberta', num_labels=1)
+
+# Fine-tune
+trainer = TransformerTrainer(model)
+trainer.train(train_loader, val_loader, epochs=5, learning_rate=2e-5)
+```
+
+Available models:
+- `mbert` - Multilingual BERT
+- `xlm-roberta` - XLM-RoBERTa Base
+- `xlm-roberta-large` - XLM-RoBERTa Large
+- `afro-xlmr` - African languages focused XLM-R
+
+---
 
 ## Preprocessing Pipeline
-
-The preprocessing pipeline handles Amharic-specific text cleaning:
 
 ```python
 from amharic_sentiment.preprocessing.pipeline import PreprocessingPipeline
@@ -139,18 +251,16 @@ clean_text = pipeline.process("ሰላም!! https://example.com ይህ ጥሩ ነ
 # Output: "ሰላም ይህ ጥሩ ነው"
 ```
 
-### Features:
+Features:
 - URL removal
 - Amharic punctuation cleaning (፤።፡፣ etc.)
-- Special character removal
-- English text and number removal
-- Emoji removal
-- Character variant normalization (ሃ→ሀ, ጸ→ፀ, etc.)
-- Labialized character normalization (ሉዋ→ሏ, etc.)
+- Character variant normalization (ሃ→ሀ, ጸ→ፀ)
+- Labialized character normalization (ሉዋ→ሏ)
+- Emoji and special character removal
+
+---
 
 ## Configuration
-
-Configuration can be done via YAML files:
 
 ```yaml
 # configs/default.yaml
@@ -163,8 +273,6 @@ data:
 model:
   model_type: "cnn_bilstm"
   embedding_dim: 32
-  filters: 64
-  lstm_units: 64
 
 training:
   epochs: 10
@@ -172,83 +280,40 @@ training:
   learning_rate: 0.001
 ```
 
-## Dataset
+---
 
-The dataset contains ~5,000 labeled Amharic comments:
-- **Positive samples**: 2,721
-- **Negative samples**: 2,704
+## Scripts
 
-Sample data format (one comment per line):
-```
-ታዛዥ ነን የምንችለውን ሁሉ ለማደረግ እግዚአብሔር ብቻ ከናንተ ጋር ይሁን
-ድል ከእውነተኛው ተባዳዮች ጋር ናት ጀግናዬ ነህ
-```
+| Script | Description |
+|--------|-------------|
+| `scripts/train.py` | Train models |
+| `scripts/run_api.py` | Run the REST API |
+| `scripts/export_model.py` | Export model for production |
+| `scripts/test_api.py` | Test API endpoints |
 
-## Notebooks
-
-See the `notebooks/` directory for interactive examples:
-- `01_getting_started.ipynb`: Complete tutorial on using the package
-
-## API Reference
-
-### AmharicSentimentDataset
-
-```python
-dataset = AmharicSentimentDataset(max_words=15000, max_len=20)
-dataset.load_from_files(positive_file, negative_file)
-dataset.preprocess()
-dataset.fit_tokenizer()
-X_train, X_val, X_test, y_train, y_val, y_test = dataset.prepare_data()
-```
-
-### Trainer
-
-```python
-trainer = Trainer(model_type='cnn_bilstm', dataset=dataset)
-trainer.train(epochs=10, batch_size=32)
-results = trainer.evaluate()
-trainer.save_model()
-```
-
-### Models
-
-```python
-from amharic_sentiment.models import CNN, BiLSTM, GRU, CNNBiLSTM
-
-model = CNNBiLSTM(vocab_size=10000, embedding_dim=32, max_len=20)
-model.build()
-model.compile()
-model.fit(X_train, y_train, validation_data=(X_val, y_val))
-```
+---
 
 ## Development
 
-### Running Tests
-
 ```bash
+# Install dev dependencies
 pip install -e ".[dev]"
+
+# Run tests
 pytest tests/
+
+# Format code
+black amharic_sentiment/
+isort amharic_sentiment/
 ```
 
-### Code Formatting
-
-```bash
-black src/
-isort src/
-flake8 src/
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+---
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - see LICENSE file for details.
 
 ## Citation
-
-If you use this project in your research, please cite:
 
 ```bibtex
 @software{amharic_sentiment_analysis,
@@ -258,8 +323,3 @@ If you use this project in your research, please cite:
   url = {https://github.com/Fikerdeep/Amharic-Sentiment-Analysis}
 }
 ```
-
-## Acknowledgments
-
-- Dataset collected from various Ethiopian social media platforms
-- Inspired by research on low-resource language NLP

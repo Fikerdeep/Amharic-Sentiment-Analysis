@@ -1,0 +1,39 @@
+# PyTorch Model Configuration
+# ============================
+
+data:
+  positive_file: "dataset/postive comment.txt"
+  negative_file: "dataset/negative comment.txt"
+  max_words: 15000
+  max_len: 20
+  test_size: 0.1
+  val_size: 0.1
+  random_state: 42
+
+model:
+  # Options: cnn, bilstm, gru, cnn_bilstm
+  model_type: "cnn_bilstm"
+  embedding_dim: 100
+
+  # CNN parameters
+  num_filters: 64
+  kernel_size: 3
+
+  # LSTM/GRU parameters
+  hidden_dim: 64
+  num_layers: 2
+
+  # Regularization
+  dropout: 0.3
+
+training:
+  epochs: 10
+  batch_size: 32
+  learning_rate: 0.001
+  optimizer: "adam"  # adam, adamw, sgd
+  weight_decay: 0.01
+  scheduler: "plateau"  # step, cosine, plateau, null
+  early_stopping_patience: 5
+  gradient_accumulation_steps: 1
+
+output_dir: "experiments/pytorch"

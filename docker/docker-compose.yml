@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Main API service
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: amharic-sentiment-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_TYPE=tensorflow
+      - MODEL_PATH=/app/saved_models/model.keras
+      - TOKENIZER_PATH=/app/saved_models/tokenizer.pkl
+      - MAX_LEN=20
+    volumes:
+      - ../saved_models:/app/saved_models:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - sentiment-network
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: amharic-sentiment-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - sentiment-network
+    profiles:
+      - production
+
+networks:
+  sentiment-network:
+    driver: bridge
+
+volumes:
+  model-data:
